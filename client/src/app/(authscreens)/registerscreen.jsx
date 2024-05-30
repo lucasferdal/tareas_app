@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Button } from 'react-native';
 import { useRouter } from 'expo-router';
 import CryptoJS from 'crypto-js';
 
@@ -9,18 +9,38 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleRegister = () => {
-    // Hash the passwords
-    const hashedPassword = CryptoJS.SHA256(password).toString();
-    const hashedConfirmPassword = CryptoJS.SHA256(confirmPassword).toString();
+  const handleRegister = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Password do not match!');
+      return;
+    }
 
-    // Compare the hashed passwords
-    if (hashedPassword === hashedConfirmPassword) {
-      // Proceed with the registration process
-      Alert.alert('Success', 'Passwords match!');
-      // Navigate to another screen or perform further actions
-    } else {
-      Alert.alert('Error', 'Passwords do not match!');
+    try {
+      const response = await fetch('http://10.0.2.2:3000/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user: {
+            email,
+            password,
+            password_confirmation: confirmPassword,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        Alert.alert('Success', 'User registered successfully!');
+        router.push('/loginscreen');
+      } else {
+        const errorData = await response.json();
+        Alert.alert('Error', errorData.errors.join(', '));
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Something went wrong!');
+      console.log(error)
     }
   };
 
@@ -49,10 +69,10 @@ export default function RegisterScreen() {
           onChangeText={setConfirmPassword}
         />
       </View>
-      <TouchableOpacity onPress={handleRegister}>
-        <Text style={styles.linkText}>Registrarse</Text>
+      <TouchableOpacity onPress={handleRegister} style={styles.buttonContainer}>
+        <Text style={styles.buttonStyles}>Registrarse</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.push('/login')}>
+      <TouchableOpacity onPress={() => router.push('/loginscreen')}>
         <Text style={styles.linkText}>Ya tienes un usuario? Click aqui para loguearte</Text>
       </TouchableOpacity>
     </View>
@@ -86,4 +106,16 @@ const styles = StyleSheet.create({
     color: 'blue',
     marginTop: 20,
   },
+  buttonContainer: {
+    marginTop: 10,
+  },
+  buttonStyles: {
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: 'black',
+    width: 120,
+    height: 30,
+    textAlign: 'center',
+    justifyContent: 'center'
+  }
 });
